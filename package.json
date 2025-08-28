@@ -1,0 +1,18 @@
+{
+  "name": "bun-async-disk-api",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "release": "bun build --entrypoints ./server.ts ./flockAsyncWorker.ts ./server.ts --compile --minify --sourcemap"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "moment": "^2.30.1",
+    "zod": "^4.1.4"
+  }
+}
