@@ -3,8 +3,9 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "release": "bun build --entrypoints ./src/server.ts ./src/flockAsyncWorker.ts --compile --minify --sourcemap",
-    "dev": "bun run ./src/server"
+    "release": "bun build --entrypoints ./src/server.ts --compile --minify --sourcemap",
+    "dev": "bun run ./src/server",
+    "reset-db": "bun run /scripts/resetDb.ts"
   },
   "devDependencies": {
     "@types/bun": "1.2.21"

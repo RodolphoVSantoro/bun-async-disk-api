@@ -5,14 +5,8 @@ import {
   deserializeUser,
   serializeUser,
 } from "./user";
-import { openSync } from "fs";
-import {
-  flockConstants,
-  writeFileAsync,
-  readFileAsync,
-  flockAsync,
-  fileOpenModes,
-} from "./fs-ext";
+import { openSync, readFileSync, writeFileSync } from "fs";
+import { flockConstants, fileOpenModes, flock } from "./fs-ext";
 
 function userPath(id: number): string {
   return `users/user${id}`;
@@ -20,42 +14,47 @@ function userPath(id: number): string {
 
 // Call when resetting/creating user
 // Otherwise call update functions
-export async function writeUser(user: User): Promise<void> {
+export function writeUser(user: User): void {
   const filePath = userPath(user.id);
   const fd = openSync(filePath, fileOpenModes.WRITE);
 
-  await flockAsync(fd, flockConstants.LOCK_EX);
-  await writeFileAsync(fd, serializeUser(user));
-  await flockAsync(fd, flockConstants.LOCK_UN);
+  flock(fd, flockConstants.LOCK_EX);
+  writeFileSync(fd, serializeUser(user));
+  flock(fd, flockConstants.LOCK_UN);
 }
 
-export async function readUser(id: number): Promise<User> {
+export function readUser(id: number): User {
   const filePath = userPath(id);
   const fd = openSync(filePath, fileOpenModes.READ);
 
-  await flockAsync(fd, flockConstants.LOCK_SH);
-  const serializedUser = await readFileAsync(fd);
-  await flockAsync(fd, flockConstants.LOCK_UN);
+  flock(fd, flockConstants.LOCK_SH);
+  const serializedUser = readFileSync(fd);
+  flock(fd, flockConstants.LOCK_UN);
 
   const user = deserializeUser(serializedUser);
   return user;
 }
 
-export async function updateUserWithTransaction(
+export function updateUserWithTransaction(
   id: number,
   transaction: Transaction
-): Promise<User> {
+): User {
   const filePath = userPath(id);
   const fd = openSync(filePath, fileOpenModes.READ);
 
-  await flockAsync(fd, flockConstants.LOCK_EX);
-  const fileUser = await readFileAsync(fd);
+  flock(fd, flockConstants.LOCK_EX);
+  const fileUser = readFileSync(fd);
   const user = deserializeUser(fileUser);
-  addTransaction(user, transaction);
+  try {
+    addTransaction(user, transaction);
+  } catch (e) {
+    flock(fd, flockConstants.LOCK_UN);
+    throw e;
+  }
   const serializedUser = serializeUser(user);
   const fdWrite = openSync(filePath, fileOpenModes.WRITE);
-  await writeFileAsync(fdWrite, serializedUser);
-  await flockAsync(fd, flockConstants.LOCK_UN);
+  writeFileSync(fdWrite, serializedUser);
+  flock(fd, flockConstants.LOCK_UN);
 
   return user;
 }

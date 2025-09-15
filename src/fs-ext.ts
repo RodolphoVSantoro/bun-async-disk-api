@@ -1,6 +1,4 @@
 import { dlopen, FFIType } from "bun:ffi";
-import { writeFile, readFile, appendFile } from "fs";
-import { promisify } from "util";
 
 const path = "/lib64/libc.so.6";
 
@@ -29,30 +27,3 @@ export const fileOpenModes = {
 export function flock(fd: number, flag: FlockFlag): number {
   return fsExt.symbols.flock(fd, flag);
 }
-
-export function flockAsync(fd: number, operation: number): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(
-      new URL(process.env.WORKER_FILE!, import.meta.url)
-    );
-
-    worker.onmessage = (msg) => {
-      if (msg.data !== 0) {
-        reject(msg.data);
-      } else {
-        resolve(msg.data);
-      }
-      worker.terminate();
-    };
-
-    worker.onerror = (err) => {
-      reject(err);
-      worker.terminate();
-    };
-    worker.postMessage({ fd, operation });
-  });
-}
-
-export const readFileAsync = promisify(readFile);
-export const writeFileAsync = promisify(writeFile);
-export const appendFileAsync = promisify(appendFile);

@@ -1,5 +1,5 @@
 import moment from "moment";
-import { parseId } from "./user";
+import { LimitExceedError, parseId } from "./user";
 import type { BunRequest } from "bun";
 import { readUser, updateUserWithTransaction } from "./db";
 import {
@@ -8,8 +8,10 @@ import {
   type Transaction,
 } from "./transaction";
 
+const port = 9999;
+
 Bun.serve({
-  port: 3000,
+  port,
   routes: {
     "/clientes/:customerId/transacoes": async (
       req: BunRequest<"/clientes/:customerId/transacoes">
@@ -17,11 +19,10 @@ Bun.serve({
       if (req.method !== "POST") {
         return new Response("Method not allowed", { status: 405 });
       }
-      const body: any = await req.json();
+      const body: unknown = await req.json();
       try {
         validateRequest(body);
       } catch (error: unknown) {
-        console.error(error);
         return new Response("Bad Request", { status: 400 });
       }
 
@@ -34,14 +35,22 @@ Bun.serve({
         realizada_em,
       };
       const customerId = parseId(parseInt(req.params.customerId));
-      const user = await updateUserWithTransaction(customerId, transaction);
+      let user;
+      try {
+        user = updateUserWithTransaction(customerId, transaction);
+      } catch (error: unknown) {
+        if (error instanceof LimitExceedError) {
+          return new Response("Limit Exceeded", { status: 400 });
+        }
+        return new Response("Internal Server Error", { status: 500 });
+      }
       const response = {
         limite: user.limit,
         saldo: user.total,
       };
       return Response.json(response);
     },
-    "/clientes/:customerId/extrato": async (
+    "/clientes/:customerId/extrato": (
       req: BunRequest<"/clientes/:customerId/extrato">
     ) => {
       if (req.method !== "GET") {
@@ -51,7 +60,7 @@ Bun.serve({
       if (!(customerId > 0 && customerId < 6)) {
         return new Response("Bad request", { status: 400 });
       }
-      const user = await readUser(customerId);
+      const user = readUser(customerId);
       const data_extrato = moment().format("YYYY-MM-DDThh:mm:ss.msZ");
       const ultimas_transacoes = getSaldoResponseArray(user);
 
@@ -68,4 +77,4 @@ Bun.serve({
   },
 });
 
-console.log("Server running on port 3000");
+console.log(`Server running on port ${port}`);

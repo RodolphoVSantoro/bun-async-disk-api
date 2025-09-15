@@ -179,3 +179,4 @@ server
 # data
 users/**
 !users/.gitkeep
+load-test/user-files/results
