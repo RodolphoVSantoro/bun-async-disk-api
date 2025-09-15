@@ -3,7 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "release": "bun build --entrypoints ./server.ts ./flockAsyncWorker.ts ./server.ts --compile --minify --sourcemap"
+    "release": "bun build --entrypoints ./src/server.ts ./src/flockAsyncWorker.ts --compile --minify --sourcemap",
+    "dev": "bun run ./src/server"
   },
   "devDependencies": {
     "@types/bun": "latest"

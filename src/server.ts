@@ -15,9 +15,9 @@ Bun.serve({
     port: 3000,
     routes: {
         "/clientes/:customerId/transacoes": async (req: BunRequest<"/clientes/:customerId/transacoes">) => {
-            // if (req.method !== "POST") {
-            //     return new Response("Method not allowed", { status: 405 });
-            // }
+            if (req.method !== "POST") {
+                return new Response("Method not allowed", { status: 405 });
+            }
             const body: unknown = await req.json();
             try {
                 validateRequest(body);
@@ -43,9 +43,9 @@ Bun.serve({
             return Response.json(response);
         },
         "/clientes/:customerId/extrato": async (req: BunRequest<"/clientes/:customerId/extrato">) => {
-            // if (req.method !== "GET") {
-            //     return new Response("Method not allowed", { status: 405 });
-            // }
+            if (req.method !== "GET") {
+                return new Response("Method not allowed", { status: 405 });
+            }
             const customerId = parseInt(req.params.customerId);
             if (!(customerId > 0 && customerId < 6)) {
                 return new Response("Bad request", { status: 400 });
@@ -66,4 +66,5 @@ Bun.serve({
         }
     }
 });
+
 console.log("Server running on port 3000");

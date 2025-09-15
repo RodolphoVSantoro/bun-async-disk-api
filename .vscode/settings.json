@@ -3,9 +3,11 @@
         "clientes",
         "descricao",
         "extrato",
+        "limite",
         "realizada",
         "Saldo",
         "tipo",
-        "tipos"
+        "tipos",
+        "transacoes"
     ]
 }

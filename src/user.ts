@@ -1,7 +1,6 @@
-import { INT_SIZE } from "./primitiveEncoders";
+import { deserializeInt, INT_SIZE, serializeInt } from "./primitiveEncoders";
 import {
     type Transaction,
-    defaultTransaction,
     deserializeTransactions,
     serializeTransactions,
     TRANSACTION_BYTE_SIZE,
@@ -25,17 +24,6 @@ export interface User {
     oldestTransaction: number; // 4 bytes
     // 10 * Transation bytes = 690
     transactions: Transaction[];
-}
-
-function serializeInt(n: number): Buffer {
-    const serializedInt = Buffer.alloc(INT_SIZE);
-    serializedInt.writeInt32LE(n);
-    return serializedInt;
-}
-
-function deserializeInt(b: Buffer) {
-    const deserializedInt = b.readInt32LE();
-    return deserializedInt;
 }
 
 export function serializeUser(user: User): Buffer {
@@ -87,47 +75,18 @@ export function deserializeUser(serializedUser: Buffer): User {
     };
 }
 
-export function defaultUser(options?: Partial<User>): User {
-    let transactions: Transaction[] = [];
-    for (let i = 0; i < MAX_TRANSACTIONS; i++) {
-        transactions.push(defaultTransaction(options?.transactions?.[i]));
-    }
-
-    return {
-        id: options?.id ?? 0,
-        limit: options?.limit ?? 0,
-        nTransactions: options?.nTransactions ?? 0,
-        oldestTransaction: options?.oldestTransaction ?? 0,
-        total: options?.total ?? 0,
-        transactions,
-    }
-}
-
 export function addTransaction(user: User, transaction: Transaction): void {
-    addSaldo(user, transaction);
-    if (user.nTransactions == 10) {
+    const valor = transaction.tipo === 'c' ? transaction.valor : -transaction.valor;
+    user.total += valor;
+    if (-user.total > user.limit) {
+        throw new LimitExceedError(`The value of ${transaction.valor} exceeds the user limit of ${user.limit}`);
+    }
+    if (user.nTransactions === 10) {
         user.transactions[user.oldestTransaction] = transaction;
-        user.oldestTransaction = moveRightInTransactions(user.oldestTransaction);
+        user.oldestTransaction = (user.oldestTransaction + 1) % MAX_TRANSACTIONS;
         return;
     }
 
     user.transactions[user.nTransactions] = transaction;
     user.nTransactions++;
-}
-
-function addSaldo(user: User, transaction: Transaction) {
-    if (transaction.tipo == 'd') {
-        const newTotal = user.total - transaction.valor;
-        if (-1 * newTotal > user.limit) {
-            throw new LimitExceedError(`The value of ${transaction.valor} exceeds the user limit of ${user.limit}`);
-        }
-        user.total = newTotal;
-        return;
-    }
-    // tipo == 'c'
-    user.total += transaction.valor;
-}
-
-function moveRightInTransactions(index: number) {
-    return (index + 1) % MAX_TRANSACTIONS;
 }
