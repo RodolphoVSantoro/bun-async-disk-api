@@ -19,7 +19,12 @@ const LOCK_UN = 8 as const;
 export const flockConstants = { LOCK_SH, LOCK_EX, LOCK_NB, LOCK_UN } as const;
 export type FlockFlag = 2 | 4 | 1 | 8;
 
-export const fileOpenModes = { READ: "r", WRITE: "w", APPEND: "a", READ_PLUS: 'r+' };
+export const fileOpenModes = {
+  READ: "r",
+  WRITE: "w",
+  APPEND: "a",
+  READ_PLUS: "r+",
+};
 
 export function flock(fd: number, flag: FlockFlag): number {
   return fsExt.symbols.flock(fd, flag);
@@ -27,7 +32,9 @@ export function flock(fd: number, flag: FlockFlag): number {
 
 export function flockAsync(fd: number, operation: number): Promise<number> {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL(process.env.WORKER_FILE!, import.meta.url));
+    const worker = new Worker(
+      new URL(process.env.WORKER_FILE!, import.meta.url)
+    );
 
     worker.onmessage = (msg) => {
       if (msg.data !== 0) {

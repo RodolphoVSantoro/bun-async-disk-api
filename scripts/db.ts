@@ -1,58 +1,61 @@
 import type { Transaction } from "./transaction";
 import {
-    type User,
-    addTransaction,
-    deserializeUser,
-    serializeUser,
+  type User,
+  addTransaction,
+  deserializeUser,
+  serializeUser,
 } from "./user";
 import { openSync } from "fs";
 import {
-    flockConstants,
-    writeFileAsync,
-    readFileAsync,
-    flockAsync,
-    fileOpenModes
-} from "./fs-ext";
+  flockConstants,
+  writeFileAsync,
+  readFileAsync,
+  flockAsync,
+  fileOpenModes,
+} from "../src/fs-ext";
 
 function userPath(id: number): string {
-    return `users/user${id}`;
+  return `users/user${id}`;
 }
 
 // Call when resetting/creating user
 // Otherwise call update functions
 export async function writeUser(user: User): Promise<void> {
-    const filePath = userPath(user.id);
-    const fd = openSync(filePath, fileOpenModes.WRITE);
+  const filePath = userPath(user.id);
+  const fd = openSync(filePath, fileOpenModes.WRITE);
 
-    await flockAsync(fd, flockConstants.LOCK_EX);
-    await writeFileAsync(filePath, serializeUser(user));
-    await flockAsync(fd, flockConstants.LOCK_UN);
+  // await flockAsync(fd, flockConstants.LOCK_EX);
+  await writeFileAsync(filePath, serializeUser(user));
+  // await flockAsync(fd, flockConstants.LOCK_UN);
 }
 
 export async function readUser(id: number): Promise<User> {
-    const filePath = userPath(id);
-    const fd = openSync(filePath, "r");
+  const filePath = userPath(id);
+  const fd = openSync(filePath, "r");
 
-    await flockAsync(fd, flockConstants.LOCK_SH);
-    const serializedUser = await readFileAsync(filePath);
-    await flockAsync(fd, flockConstants.LOCK_UN);
+  await flockAsync(fd, flockConstants.LOCK_SH);
+  const serializedUser = await readFileAsync(filePath);
+  await flockAsync(fd, flockConstants.LOCK_UN);
 
-    const user = deserializeUser(serializedUser);
-    return user;
+  const user = deserializeUser(serializedUser);
+  return user;
 }
 
-export async function updateUserWithTransaction(id: number, transaction: Transaction): Promise<User> {
-    const filePath = userPath(id);
-    const fd = openSync(filePath, fileOpenModes.READ);
-    await flockAsync(fd, flockConstants.LOCK_EX);
+export async function updateUserWithTransaction(
+  id: number,
+  transaction: Transaction
+): Promise<User> {
+  const filePath = userPath(id);
+  const fd = openSync(filePath, fileOpenModes.READ);
+  await flockAsync(fd, flockConstants.LOCK_EX);
 
-    const fileUser = await readFileAsync(filePath);
-    const user = deserializeUser(fileUser);
-    addTransaction(user, transaction);
-    const serializedUser = serializeUser(user);
-    writeFileAsync(filePath, serializedUser);
+  const fileUser = await readFileAsync(filePath);
+  const user = deserializeUser(fileUser);
+  addTransaction(user, transaction);
+  const serializedUser = serializeUser(user);
+  writeFileAsync(filePath, serializedUser);
 
-    await flockAsync(fd, flockConstants.LOCK_UN);
+  await flockAsync(fd, flockConstants.LOCK_UN);
 
-    return user;
+  return user;
 }
